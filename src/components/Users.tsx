@@ -62,7 +62,7 @@ export default class Users extends React.Component<Props, State> {
     const UserRef = firebase.database().ref("users");
     var userList:any = [];
 
-    UserRef.orderByChild(pagination.sortColumn).limitToFirst(pageSize).once("value", users => {
+    UserRef.limitToFirst(pageSize).once("value", users => {
 
         users.forEach(function(user:any) {
             userList.push(user.val());
@@ -196,7 +196,8 @@ export default class Users extends React.Component<Props, State> {
       UserRef.once("value", user => {
         const allUsers = Object.keys(user.val());
         const key = allUsers[(pageNumber - 1) * pageSize];
-        UserRef.orderByChild(pagination.sortColumn)
+
+        UserRef.orderByKey()
           .limitToFirst(pageSize)
           .startAt(key)
           .once("value", users => {
