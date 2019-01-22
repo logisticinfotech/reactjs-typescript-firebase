@@ -54,9 +54,16 @@ export default class Users extends React.Component<Props, State> {
     await this.getTotalRecords();
     const { pageSize } = this.props.pagination;
     const UserRef = firebase.database().ref("users");
+    var userList:any = [];
 
-    UserRef.limitToFirst(pageSize).once("value", user => {
-      this.props.listUser(user.val());
+    UserRef.limitToFirst(pageSize).once("value", users => {
+
+        users.forEach(function(user:any) {
+            userList.push(user.val());
+          });
+
+      this.props.listUser(userList);
+    //   this.props.listUser(user.val());
     });
   }
   // Fetch total number of users from firebase
@@ -122,12 +129,17 @@ export default class Users extends React.Component<Props, State> {
       this.props.setPagination(pagination);
 
       const UserRef = firebase.database().ref("users");
+      var userList: any = [];
       await UserRef.orderByChild(column)
         .startAt(search)
         .endAt(search + "\uf8ff")
         .limitToFirst(10)
-        .once("value", (user: any) => {
-          this.props.listUser(user.val());
+        .once("value", (users: any) => {
+          users.forEach(function(user: any) {
+            userList.push(user.val());
+          });
+
+          this.props.listUser(userList);
         });
     } else {
       pagination.searchColumn = "";
@@ -150,7 +162,7 @@ export default class Users extends React.Component<Props, State> {
 
     const { searchColumn, searchValue, pageSize } = this.props.pagination;
     const UserRef = firebase.database().ref("users");
-
+    var userList: any = [];
     if (searchColumn) {
       UserRef.orderByChild(searchColumn)
         .startAt(searchValue)
@@ -161,8 +173,13 @@ export default class Users extends React.Component<Props, State> {
           UserRef.orderByKey()
             .limitToFirst(pageSize)
             .startAt(key)
-            .once("value", currentPageUser => {
-              this.props.listUser(currentPageUser.val());
+            .once("value", users => {
+              users.forEach(function(currentPageUser: any) {
+                userList.push(currentPageUser.val());
+              });
+
+              this.props.listUser(userList);
+              //   this.props.listUser(currentPageUser.val());
             });
         });
     } else {
@@ -173,8 +190,14 @@ export default class Users extends React.Component<Props, State> {
         UserRef.orderByKey()
           .limitToFirst(pageSize)
           .startAt(key)
-          .once("value", currentPageUser => {
-            this.props.listUser(currentPageUser.val());
+          .once("value", users => {
+            users.forEach(function(currentPageUser: any) {
+              userList.push(currentPageUser.val());
+            });
+
+            this.props.listUser(userList);
+
+            // this.props.listUser(currentPageUser.val());
           });
       });
     }
@@ -186,7 +209,7 @@ export default class Users extends React.Component<Props, State> {
     });
 
     let endDate: any = this.state.endDate;
-
+    var userList: any = [];
     if (date && endDate) {
       const column = "lastActive";
       let startDate: any = moment(date).format("X");
@@ -210,8 +233,12 @@ export default class Users extends React.Component<Props, State> {
         .startAt(startDate)
         .endAt(endDate)
         .limitToFirst(10)
-        .once("value", (user: any) => {
-          this.props.listUser(user.val());
+        .once("value", (users: any) => {
+          users.forEach(function(user: any) {
+            userList.push(user.val());
+          });
+          this.props.listUser(userList);
+          //   this.props.listUser(user.val());
         });
       this.getTotalRecords();
     } else {
@@ -223,8 +250,13 @@ export default class Users extends React.Component<Props, State> {
 
       const UserRef = firebase.database().ref("users");
 
-      await UserRef.limitToFirst(10).once("value", user => {
-        this.props.listUser(user.val());
+      await UserRef.limitToFirst(10).once("value", users => {
+        users.forEach(function(user: any) {
+          userList.push(user.val());
+        });
+
+        this.props.listUser(userList);
+        // this.props.listUser(user.val());
       });
       this.getTotalRecords();
     }
@@ -236,7 +268,7 @@ export default class Users extends React.Component<Props, State> {
     });
 
     let startDate: any = this.state.startDate;
-
+    var userList: any = [];
     if (date && startDate) {
       const column = "lastActive";
       startDate = moment(startDate).format("X");
@@ -261,8 +293,13 @@ export default class Users extends React.Component<Props, State> {
         .startAt(startDate)
         .endAt(endDate)
         .limitToFirst(10)
-        .once("value", (user: any) => {
-          this.props.listUser(user.val());
+        .once("value", (users: any) => {
+          users.forEach(function(user: any) {
+            userList.push(user.val());
+          });
+
+          this.props.listUser(userList);
+          //   this.props.listUser(user.val());
         });
       this.getTotalRecords();
     } else {
@@ -274,8 +311,13 @@ export default class Users extends React.Component<Props, State> {
 
       const UserRef = firebase.database().ref("users");
 
-      await UserRef.limitToFirst(10).once("value", user => {
-        this.props.listUser(user.val());
+      await UserRef.limitToFirst(10).once("value", users => {
+        users.forEach(function(user: any) {
+          userList.push(user.val());
+        });
+
+        this.props.listUser(userList);
+        // this.props.listUser(user.val());
       });
       this.getTotalRecords();
     }
@@ -293,17 +335,29 @@ export default class Users extends React.Component<Props, State> {
 
     const UserRef = firebase.database().ref("users");
 
+    var userList: any = [];
+    console.log("Sort order", sortOrder);
     if (sortOrder === "ASC") {
       UserRef.orderByChild(column)
         .limitToFirst(10)
-        .once("value", (user: any) => {
-          this.props.listUser(user.val());
+        .on("value", (users: any) => {
+          users.forEach(function(user: any) {
+            userList.push(user.val());
+          });
+
+          this.props.listUser(userList);
+
+          //   this.props.listUser(user.val());
         });
     } else {
       UserRef.orderByChild(column)
         .limitToLast(10)
-        .once("value", (user: any) => {
-          this.props.listUser(user.val());
+        .on("value", (users: any) => {
+          //   this.props.listUser(user.val());
+          users.forEach(function(user: any) {
+            userList.push(user.val());
+          });
+          this.props.listUser(userList);
         });
     }
   };
@@ -317,8 +371,11 @@ export default class Users extends React.Component<Props, State> {
 
     return (
       <div className="App">
-        <table id="example" className="display table table-bordered table-hover">
-          <thead >
+        <table
+          id="example"
+          className="display table table-bordered table-hover"
+        >
+          <thead>
             <tr>
               <th>User ID</th>
               <th onClick={this.onClickSort("firstName")}>First Name</th>
