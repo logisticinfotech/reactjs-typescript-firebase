@@ -8,7 +8,7 @@ import * as _ from "lodash";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Pagination from "react-js-pagination";
-import "./user.css";
+import "./Users.css";
 
 interface Props {
   users: User[];
@@ -42,15 +42,19 @@ export default class Users extends React.Component<Props, State> {
       storageBucket: "airvat-3f130.appspot.com",
       messagingSenderId: "778331008098"
     };
+
     firebase.initializeApp(config);
+
     this.setState({
       startDate: null,
       endDate: null,
       totalRecords: 0
     });
+
     await this.getTotalRecords();
     const { pageSize } = this.props.pagination;
     const UserRef = firebase.database().ref("users");
+
     UserRef.limitToFirst(pageSize).once("value", user => {
       this.props.listUser(user.val());
     });
@@ -59,6 +63,7 @@ export default class Users extends React.Component<Props, State> {
   getTotalRecords() {
     const { searchColumn, searchValue } = this.props.pagination;
     const UserRef = firebase.database().ref("users");
+
     if (searchColumn) {
       UserRef.orderByChild(searchColumn)
         .startAt(searchValue)
@@ -99,7 +104,10 @@ export default class Users extends React.Component<Props, State> {
       search = search.toUpperCase();
     } else if (column === "email") {
       search = search.toLowerCase();
-    } else if (column === "account/residenceCountry" || column === "account/residenceCity") {
+    } else if (
+      column === "account/residenceCountry" ||
+      column === "account/residenceCity"
+    ) {
       search = _.startCase(search);
     }
 
@@ -107,6 +115,7 @@ export default class Users extends React.Component<Props, State> {
     pagination.page = 1;
     pagination.startDate = "";
     pagination.endDate = "";
+
     if (search) {
       pagination.searchColumn = column;
       pagination.searchValue = search;
@@ -141,6 +150,7 @@ export default class Users extends React.Component<Props, State> {
 
     const { searchColumn, searchValue, pageSize } = this.props.pagination;
     const UserRef = firebase.database().ref("users");
+
     if (searchColumn) {
       UserRef.orderByChild(searchColumn)
         .startAt(searchValue)
@@ -159,6 +169,7 @@ export default class Users extends React.Component<Props, State> {
       UserRef.once("value", user => {
         const allUsers = Object.keys(user.val());
         const key = allUsers[(pageNumber - 1) * pageSize];
+
         UserRef.orderByKey()
           .limitToFirst(pageSize)
           .startAt(key)
@@ -173,7 +184,9 @@ export default class Users extends React.Component<Props, State> {
     this.setState({
       startDate: date
     });
+
     let endDate: any = this.state.endDate;
+
     if (date && endDate) {
       const column = "lastActive";
       let startDate: any = moment(date).format("X");
@@ -192,6 +205,7 @@ export default class Users extends React.Component<Props, State> {
       startDate = Number(startDate) * 1000;
       endDate = Number(endDate) * 1000;
       const UserRef = firebase.database().ref("users");
+
       await UserRef.orderByChild(column)
         .startAt(startDate)
         .endAt(endDate)
@@ -208,6 +222,7 @@ export default class Users extends React.Component<Props, State> {
       this.props.setPagination(pagination);
 
       const UserRef = firebase.database().ref("users");
+
       await UserRef.limitToFirst(10).once("value", user => {
         this.props.listUser(user.val());
       });
@@ -219,7 +234,9 @@ export default class Users extends React.Component<Props, State> {
     this.setState({
       endDate: date
     });
+
     let startDate: any = this.state.startDate;
+
     if (date && startDate) {
       const column = "lastActive";
       startDate = moment(startDate).format("X");
@@ -239,6 +256,7 @@ export default class Users extends React.Component<Props, State> {
       endDate = Number(endDate) * 1000;
 
       const UserRef = firebase.database().ref("users");
+
       await UserRef.orderByChild(column)
         .startAt(startDate)
         .endAt(endDate)
@@ -255,6 +273,7 @@ export default class Users extends React.Component<Props, State> {
       this.props.setPagination(pagination);
 
       const UserRef = firebase.database().ref("users");
+
       await UserRef.limitToFirst(10).once("value", user => {
         this.props.listUser(user.val());
       });
@@ -273,6 +292,7 @@ export default class Users extends React.Component<Props, State> {
     this.props.setPagination(pagination);
 
     const UserRef = firebase.database().ref("users");
+
     if (sortOrder === "ASC") {
       UserRef.orderByChild(column)
         .limitToFirst(10)
@@ -294,17 +314,22 @@ export default class Users extends React.Component<Props, State> {
       pagination: { page, pageSize }
     } = this.props;
     const { totalRecords } = this.state;
+
     return (
-      <div>
-        <table id="example" className="display table">
-          <thead>
+      <div className="App">
+        <table id="example" className="display table table-bordered table-hover">
+          <thead >
             <tr>
               <th>User ID</th>
               <th onClick={this.onClickSort("firstName")}>First Name</th>
               <th onClick={this.onClickSort("surname")}>Second Name</th>
               <th onClick={this.onClickSort("email")}>Email</th>
-              <th onClick={this.onClickSort("account/residenceCountry")}>Residence Country</th>
-              <th onClick={this.onClickSort("account/residenceCity")}>Residence City</th>
+              <th onClick={this.onClickSort("account/residenceCountry")}>
+                Residence Country
+              </th>
+              <th onClick={this.onClickSort("account/residenceCity")}>
+                Residence City
+              </th>
               <th onClick={this.onClickSort("lastActive")}>Date Last Active</th>
             </tr>
             <tr>
