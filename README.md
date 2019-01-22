@@ -1,0 +1,22 @@
+This project is Demo task for candidate listing from Firestore with pagination, sorting(asc/desc) with search capability using redux. Whole code written using Typescript.
+
+Let's clone code from git
+
+cd project_foldername
+
+## Available Scripts
+
+Run command : 
+
+### `npm install`
+
+Above command will install required dependencies.
+
+In the project directory, you can run:
+
+### `npm start`
+
+Runs the app in the development mode.<br>
+Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+
+The page will reload if you make edits.<br>

@@ -1,0 +1,41 @@
+{
+  "name": "myreactapp",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@types/react-datepicker": "^2.0.2",
+    "@types/react-js-pagination": "^3.0.1",
+    "@types/react-redux": "^7.0.0",
+    "@types/react-table": "^6.7.21",
+    "@types/redux-logger": "^3.0.6",
+    "firebase": "^5.8.0",
+    "lodash": "^4.17.11",
+    "mdbreact": "^4.8.7",
+    "moment": "^2.24.0",
+    "react": "^16.7.0",
+    "react-datepicker": "^2.0.0",
+    "react-dom": "^16.7.0",
+    "react-js-pagination": "^3.0.2",
+    "react-redux": "^6.0.0",
+    "react-scripts-ts": "3.1.0",
+    "redux": "^4.0.1",
+    "redux-logger": "^3.0.6",
+    "reselect": "^4.0.0",
+    "tslint": "^5.12.1"
+  },
+  "scripts": {
+    "start": "react-scripts-ts start",
+    "build": "react-scripts-ts build",
+    "test": "react-scripts-ts test --env=jsdom",
+    "eject": "react-scripts-ts eject"
+  },
+  "devDependencies": {
+    "@types/jest": "^23.3.12",
+    "@types/lodash": "^4.14.120",
+    "@types/node": "^10.12.18",
+    "@types/react": "^16.7.20",
+    "@types/react-dom": "^16.0.11",
+    "redux-devtools": "^3.5.0",
+    "typescript": "^3.2.4"
+  }
+}
