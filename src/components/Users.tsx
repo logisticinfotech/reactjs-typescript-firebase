@@ -52,6 +52,7 @@ export default class Users extends React.Component<Props, State> {
     });
 
     await this.getTotalRecords();
+
     const { pageSize } = this.props.pagination;
     const UserRef = firebase.database().ref("users");
     var userList:any = [];
@@ -122,14 +123,14 @@ export default class Users extends React.Component<Props, State> {
     pagination.page = 1;
     pagination.startDate = "";
     pagination.endDate = "";
-
+    var userList: any = [];
     if (search) {
       pagination.searchColumn = column;
       pagination.searchValue = search;
       this.props.setPagination(pagination);
 
       const UserRef = firebase.database().ref("users");
-      var userList: any = [];
+      
       await UserRef.orderByChild(column)
         .startAt(search)
         .endAt(search + "\uf8ff")
@@ -147,8 +148,12 @@ export default class Users extends React.Component<Props, State> {
       this.props.setPagination(pagination);
 
       const UserRef = firebase.database().ref("users");
-      await UserRef.limitToFirst(10).once("value", user => {
-        this.props.listUser(user.val());
+      await UserRef.limitToFirst(10).once("value", users => {
+        users.forEach(function(user: any) {
+            userList.push(user.val());
+          });
+        // this.props.listUser(user.val());
+        this.props.listUser(userList);
       });
     }
     this.getTotalRecords();
@@ -324,6 +329,7 @@ export default class Users extends React.Component<Props, State> {
   };
 
   onClickSort = (column: string) => () => {
+
     const pagination = this.props.pagination;
     const sortOrder =
       pagination.sortOrder === "ASC" && pagination.sortColumn === column
@@ -336,7 +342,7 @@ export default class Users extends React.Component<Props, State> {
     const UserRef = firebase.database().ref("users");
 
     var userList: any = [];
-    console.log("Sort order", sortOrder);
+    
     if (sortOrder === "ASC") {
       UserRef.orderByChild(column)
         .limitToFirst(10)
