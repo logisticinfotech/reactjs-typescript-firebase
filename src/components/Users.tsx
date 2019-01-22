@@ -51,13 +51,18 @@ export default class Users extends React.Component<Props, State> {
       totalRecords: 0
     });
 
+    const pagination = this.props.pagination;
+    pagination.sortColumn = "firstName";
+    pagination.sortOrder = "ASC";
+    this.props.setPagination(pagination);
+
     await this.getTotalRecords();
 
     const { pageSize } = this.props.pagination;
     const UserRef = firebase.database().ref("users");
     var userList:any = [];
 
-    UserRef.limitToFirst(pageSize).once("value", users => {
+    UserRef.orderByChild(pagination.sortColumn).limitToFirst(pageSize).once("value", users => {
 
         users.forEach(function(user:any) {
             userList.push(user.val());
@@ -191,8 +196,7 @@ export default class Users extends React.Component<Props, State> {
       UserRef.once("value", user => {
         const allUsers = Object.keys(user.val());
         const key = allUsers[(pageNumber - 1) * pageSize];
-
-        UserRef.orderByKey()
+        UserRef.orderByChild(pagination.sortColumn)
           .limitToFirst(pageSize)
           .startAt(key)
           .once("value", users => {

@@ -14,8 +14,8 @@ export const initialState: State = {
   pagination: {
     page: 1,
     pageSize: 10,
-    sortColumn: "",
-    sortOrder: "",
+    sortColumn: "firstName",
+    sortOrder: "ASC",
     searchColumn: "",
     searchValue: "",
     startDate: "",
