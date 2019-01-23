@@ -1,13 +1,33 @@
 .App {
   text-align: center;
 }
+
 .display {
   width: 100%;
 }
+
 .text-boxs {
   display: block;
 }
+
 .tableheader {
   border: 1px solid #ddd;
   padding: 8px;
+}
+
+.pagination {
+  float: right;
+}
+
+.search-filter td input {
+  width: 100%;
+}
+
+.search-filter td.date-filter .react-datepicker-wrapper {
+  width: 45%;
+  float: left;
+}
+
+.search-filter td.date-filter .react-datepicker-wrapper:last-child {
+  margin-left: 5px;
 }

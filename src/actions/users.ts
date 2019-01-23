@@ -33,19 +33,10 @@ export interface SetPaginationAction {
  * We are returning the right Action for each function
  */
 export function listUser(users: User[]): ListUserAction {
-  const array = [];
-  if (users) {
-    const keys = Object.keys(users);
-    for (var i = 0, n = keys.length; i < n; i++) {
-      const key = keys[i];
-      users[key].id = key;
-      array.push(users[key]);
-    }
-  }
   return {
     type: ActionTypes.LIST_USER,
     payload: {
-      users: array,
+      users,
     }
   };
 }

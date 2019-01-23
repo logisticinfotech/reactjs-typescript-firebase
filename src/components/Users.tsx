@@ -25,89 +25,90 @@ interface State {
   totalRecords: number;
 }
 
+let db: any;
 export default class Users extends React.Component<Props, State> {
   constructor(props: Props, state: State) {
     super(props);
     this.handleChangeEndDate = this.handleChangeEndDate.bind(this);
     this.handleChangeStateDate = this.handleChangeStateDate.bind(this);
     this.handlePageChange = this.handlePageChange.bind(this);
-  }
-
-  async componentWillMount() {
-    const config = {
+    firebase.initializeApp({
       apiKey: "AIzaSyDIRctMKQk2ERxZkWTrY7AwN2-HhbY-C1E",
       authDomain: "airvat-3f130.firebaseapp.com",
       databaseURL: "https://airvat-3f130.firebaseio.com",
-      projectId: "airvat-3f130",
-      storageBucket: "airvat-3f130.appspot.com",
-      messagingSenderId: "778331008098"
-    };
+      projectId: "airvat-3f130"
+    });
+    db = firebase.firestore();
+  }
 
-    firebase.initializeApp(config);
-
+  async componentWillMount() {
     this.setState({
       startDate: null,
       endDate: null,
       totalRecords: 0
     });
 
-    const pagination = this.props.pagination;
-    pagination.sortColumn = "firstName";
-    pagination.sortOrder = "ASC";
-    this.props.setPagination(pagination);
-
     await this.getTotalRecords();
 
     const { pageSize } = this.props.pagination;
-    const UserRef = firebase.database().ref("users");
-    var userList:any = [];
-
-    UserRef.limitToFirst(pageSize).once("value", users => {
-
-        users.forEach(function(user:any) {
-            userList.push(user.val());
-          });
-
-      this.props.listUser(userList);
-    //   this.props.listUser(user.val());
-    });
+    db.collection("users")
+      .limit(pageSize)
+      .get()
+      .then((users: any) => {
+        this.setUserResponse(users);
+      });
   }
+
+  setUserResponse = (users: any) => {
+    const userList: any = [];
+    users.forEach((doc: any) => {
+      const user = doc.data();
+      user.id = doc.id;
+      userList.push(user);
+    });
+    this.props.listUser(userList);
+  };
+
   // Fetch total number of users from firebase
-  getTotalRecords() {
+  getTotalRecords = () => {
     const { searchColumn, searchValue } = this.props.pagination;
-    const UserRef = firebase.database().ref("users");
 
     if (searchColumn) {
-      UserRef.orderByChild(searchColumn)
-        .startAt(searchValue)
-        .endAt(searchValue + "\uf8ff")
-        .once("value", (user: any) => {
-          if (user.val()) {
-            const allUsers = Object.keys(user.val());
-            this.setState({
-              totalRecords: allUsers.length
+      if (searchColumn === "lastActive") {
+        let startDate: any = this.props.pagination.startDate;
+        let endDate: any = this.props.pagination.endDate;
+
+        if (startDate && endDate) {
+          db.collection("users")
+            .where(searchColumn, ">=", startDate)
+            .where(searchColumn, "<=", endDate)
+            .get()
+            .then((users: any) => {
+              this.setState({
+                totalRecords: users.size
+              });
             });
-          } else {
-            this.setState({
-              totalRecords: 0
-            });
-          }
-        });
-    } else {
-      UserRef.once("value", user => {
-        if (user.val()) {
-          const allUsers = Object.keys(user.val());
-          this.setState({
-            totalRecords: allUsers.length
-          });
-        } else {
-          this.setState({
-            totalRecords: 0
-          });
         }
-      });
+      } else {
+        db.collection("users")
+          .where(searchColumn, ">=", searchValue)
+          .get()
+          .then((users: any) => {
+            this.setState({
+              totalRecords: users.size
+            });
+          });
+      }
+    } else {
+      db.collection("users")
+        .get()
+        .then((users: any) => {
+          this.setState({
+            totalRecords: users.size
+          });
+        });
     }
-  }
+  };
 
   // Search for each coloumn filters
   onChangeTableFilter = async (event: any) => {
@@ -128,163 +129,62 @@ export default class Users extends React.Component<Props, State> {
     pagination.page = 1;
     pagination.startDate = "";
     pagination.endDate = "";
-    var userList: any = [];
     if (search) {
       pagination.searchColumn = column;
       pagination.searchValue = search;
       this.props.setPagination(pagination);
 
-      const UserRef = firebase.database().ref("users");
-      
-      await UserRef.orderByChild(column)
-        .startAt(search)
-        .endAt(search + "\uf8ff")
-        .limitToFirst(10)
-        .once("value", (users: any) => {
-          users.forEach(function(user: any) {
-            userList.push(user.val());
-          });
-
-          this.props.listUser(userList);
+      await db
+        .collection("users")
+        .where(column, ">=", search)
+        .where(column, "<=", search + "\uf8ff")
+        .limit(10)
+        .get()
+        .then((users: any) => {
+          this.setUserResponse(users);
         });
     } else {
       pagination.searchColumn = "";
       pagination.searchValue = "";
       this.props.setPagination(pagination);
 
-      const UserRef = firebase.database().ref("users");
-      await UserRef.limitToFirst(10).once("value", users => {
-        users.forEach(function(user: any) {
-            userList.push(user.val());
-          });
-        // this.props.listUser(user.val());
-        this.props.listUser(userList);
-      });
+      await db
+        .collection("users")
+        .limit(10)
+        .get()
+        .then((users: any) => {
+          this.setUserResponse(users);
+        });
     }
     this.getTotalRecords();
-  };
-
-  // Handle page click on particular page
-  handlePageChange = (pageNumber: number) => {
-    const pagination = this.props.pagination;
-    pagination.page = pageNumber;
-    this.props.setPagination(pagination);
-
-    const { searchColumn, searchValue, pageSize } = this.props.pagination;
-    const UserRef = firebase.database().ref("users");
-    var userList: any = [];
-    if (searchColumn) {
-      UserRef.orderByChild(searchColumn)
-        .startAt(searchValue)
-        .endAt(searchValue + "\uf8ff")
-        .once("value", user => {
-          const allUsers = Object.keys(user.val());
-          const key = allUsers[(pageNumber - 1) * pageSize];
-          UserRef.orderByKey()
-            .limitToFirst(pageSize)
-            .startAt(key)
-            .once("value", users => {
-              users.forEach(function(currentPageUser: any) {
-                userList.push(currentPageUser.val());
-              });
-
-              this.props.listUser(userList);
-              //   this.props.listUser(currentPageUser.val());
-            });
-        });
-    } else {
-      UserRef.once("value", user => {
-        const allUsers = Object.keys(user.val());
-        const key = allUsers[(pageNumber - 1) * pageSize];
-
-        UserRef.orderByKey()
-          .limitToFirst(pageSize)
-          .startAt(key)
-          .once("value", users => {
-            users.forEach(function(currentPageUser: any) {
-              userList.push(currentPageUser.val());
-            });
-
-            this.props.listUser(userList);
-
-            // this.props.listUser(currentPageUser.val());
-          });
-      });
-    }
   };
 
   handleChangeStateDate = async (date: any) => {
     this.setState({
       startDate: date
     });
-
-    let endDate: any = this.state.endDate;
-    var userList: any = [];
-    if (date && endDate) {
-      const column = "lastActive";
-      let startDate: any = moment(date).format("X");
-      endDate = moment(endDate).format("X");
-      console.log("startDate", startDate);
-      console.log("endDate", endDate);
-
-      const pagination = this.props.pagination;
-      pagination.searchColumn = column;
-      pagination.startDate = startDate;
-      pagination.endDate = endDate;
-      pagination.searchValue = "";
-      pagination.page = 1;
-      this.props.setPagination(pagination);
-
-      startDate = Number(startDate) * 1000;
-      endDate = Number(endDate) * 1000;
-      const UserRef = firebase.database().ref("users");
-
-      await UserRef.orderByChild(column)
-        .startAt(startDate)
-        .endAt(endDate)
-        .limitToFirst(10)
-        .once("value", (users: any) => {
-          users.forEach(function(user: any) {
-            userList.push(user.val());
-          });
-          this.props.listUser(userList);
-          //   this.props.listUser(user.val());
-        });
-      this.getTotalRecords();
-    } else {
-      const pagination = this.props.pagination;
-      pagination.searchColumn = "";
-      pagination.searchValue = "";
-      pagination.page = 1;
-      this.props.setPagination(pagination);
-
-      const UserRef = firebase.database().ref("users");
-
-      await UserRef.limitToFirst(10).once("value", users => {
-        users.forEach(function(user: any) {
-          userList.push(user.val());
-        });
-
-        this.props.listUser(userList);
-        // this.props.listUser(user.val());
-      });
-      this.getTotalRecords();
-    }
+    setTimeout(() => {
+      this.filterDate();
+    }, 1);
   };
 
   handleChangeEndDate = async (date: any) => {
     this.setState({
       endDate: date
     });
+    setTimeout(() => {
+      this.filterDate();
+    }, 1);
+  };
 
+  filterDate = async () => {
     let startDate: any = this.state.startDate;
-    var userList: any = [];
-    if (date && startDate) {
+    let endDate: any = this.state.endDate;
+
+    if (startDate && endDate) {
       const column = "lastActive";
-      startDate = moment(startDate).format("X");
-      let endDate: any = moment(date).format("X");
-      console.log("startDate", startDate);
-      console.log("endDate", endDate);
+      startDate = Number(moment(startDate).format("X")) * 1000;
+      endDate = Number(moment(endDate).format("X")) * 1000;
 
       const pagination = this.props.pagination;
       pagination.searchColumn = column;
@@ -294,23 +194,16 @@ export default class Users extends React.Component<Props, State> {
       pagination.page = 1;
       this.props.setPagination(pagination);
 
-      startDate = Number(startDate) * 1000;
-      endDate = Number(endDate) * 1000;
-
-      const UserRef = firebase.database().ref("users");
-
-      await UserRef.orderByChild(column)
-        .startAt(startDate)
-        .endAt(endDate)
-        .limitToFirst(10)
-        .once("value", (users: any) => {
-          users.forEach(function(user: any) {
-            userList.push(user.val());
-          });
-
-          this.props.listUser(userList);
-          //   this.props.listUser(user.val());
+      await db
+        .collection("users")
+        .where(column, ">=", startDate)
+        .where(column, "<=", endDate)
+        .limit(10)
+        .get()
+        .then((users: any) => {
+          this.setUserResponse(users);
         });
+
       this.getTotalRecords();
     } else {
       const pagination = this.props.pagination;
@@ -319,58 +212,138 @@ export default class Users extends React.Component<Props, State> {
       pagination.page = 1;
       this.props.setPagination(pagination);
 
-      const UserRef = firebase.database().ref("users");
-
-      await UserRef.limitToFirst(10).once("value", users => {
-        users.forEach(function(user: any) {
-          userList.push(user.val());
+      await db
+        .collection("users")
+        .limit(10)
+        .get()
+        .then((users: any) => {
+          this.setUserResponse(users);
         });
-
-        this.props.listUser(userList);
-        // this.props.listUser(user.val());
-      });
       this.getTotalRecords();
     }
   };
 
-  onClickSort = (column: string) => () => {
+  // Handle page click on particular page
+  handlePageChange = async (pageNumber: number) => {
+    const pagination = this.props.pagination;
+    pagination.page = pageNumber;
+    this.props.setPagination(pagination);
 
+    const {
+      searchColumn,
+      searchValue,
+      startDate,
+      endDate
+    } = this.props.pagination;
+    const { pageSize } = this.props.pagination;
+    const limitTo = (pageNumber - 1) * pageSize;
+
+    if (searchColumn) {
+      if (searchColumn === "lastActive") {
+        if (startDate && endDate) {
+          if (limitTo > 0) {
+            db.collection("users")
+              .where(searchColumn, ">=", startDate)
+              .where(searchColumn, "<=", endDate)
+              .limit(limitTo)
+              .get()
+              .then((documentSnapshots: any) => {
+                var lastVisible =
+                  documentSnapshots.docs[documentSnapshots.docs.length - 1];
+                db.collection("users")
+                  .startAfter(lastVisible)
+                  .limit(pageSize)
+                  .get()
+                  .then((users: any) => {
+                    this.setUserResponse(users);
+                  });
+              });
+          } else {
+            db.collection("users")
+              .where(searchColumn, ">=", startDate)
+              .where(searchColumn, "<=", endDate)
+              .limit(pageSize)
+              .get()
+              .then((users: any) => {
+                this.setUserResponse(users);
+              });
+          }
+        }
+      } else {
+        if (limitTo > 0) {
+          db.collection("users")
+            .where(searchColumn, ">=", searchValue)
+            .where(searchColumn, "<=", searchValue + "\uf8ff")
+            .limit(limitTo)
+            .get()
+            .then((documentSnapshots: any) => {
+              var lastVisible =
+                documentSnapshots.docs[documentSnapshots.docs.length - 1];
+              db.collection("users")
+                .startAfter(lastVisible)
+                .limit(pageSize)
+                .get()
+                .then((users: any) => {
+                  this.setUserResponse(users);
+                });
+            });
+        } else {
+          db.collection("users")
+            .where(searchColumn, ">=", searchValue)
+            .where(searchColumn, "<=", searchValue + "\uf8ff")
+            .limit(pageSize)
+            .get()
+            .then((users: any) => {
+              this.setUserResponse(users);
+            });
+        }
+      }
+    } else {
+      if (limitTo > 0) {
+        db.collection("users")
+          .limit(limitTo)
+          .get()
+          .then((documentSnapshots: any) => {
+            var lastVisible =
+              documentSnapshots.docs[documentSnapshots.docs.length - 1];
+            db.collection("users")
+              .startAfter(lastVisible)
+              .limit(pageSize)
+              .get()
+              .then((users: any) => {
+                this.setUserResponse(users);
+              });
+          });
+      } else {
+        db.collection("users")
+          .limit(pageSize)
+          .get()
+          .then((users: any) => {
+            this.setUserResponse(users);
+          });
+      }
+    }
+  };
+
+  onClickSort = (column: string) => () => {
     const pagination = this.props.pagination;
     const sortOrder =
-      pagination.sortOrder === "ASC" && pagination.sortColumn === column
-        ? "DESC"
-        : "ASC";
+      pagination.sortColumn &&
+      pagination.sortOrder === "asc" &&
+      pagination.sortColumn === column
+        ? "desc"
+        : "asc";
     pagination.sortColumn = column;
     pagination.sortOrder = sortOrder;
     this.props.setPagination(pagination);
 
-    const UserRef = firebase.database().ref("users");
-
-    var userList: any = [];
-    
-    if (sortOrder === "ASC") {
-      UserRef.orderByChild(column)
-        .limitToFirst(10)
-        .on("value", (users: any) => {
-          users.forEach(function(user: any) {
-            userList.push(user.val());
-          });
-
-          this.props.listUser(userList);
-
-          //   this.props.listUser(user.val());
-        });
-    } else {
-      UserRef.orderByChild(column)
-        .limitToLast(10)
-        .on("value", (users: any) => {
-          //   this.props.listUser(user.val());
-          users.forEach(function(user: any) {
-            userList.push(user.val());
-          });
-          this.props.listUser(userList);
-        });
-    }
+    db.collection("users")
+      .orderBy(column, sortOrder)
+      .limit(pagination.pageSize)
+      .get()
+      .then((users: any) => {
+        this.setUserResponse(users);
+      });
   };
 
   render() {
@@ -382,62 +355,59 @@ export default class Users extends React.Component<Props, State> {
 
     return (
       <div className="App">
-        <table
-          id="example"
-          className="display table table-bordered table-hover"
-        >
+        <table className="display table table-bordered table-hover">
           <thead>
             <tr>
               <th>User ID</th>
               <th onClick={this.onClickSort("firstName")}>First Name</th>
               <th onClick={this.onClickSort("surname")}>Second Name</th>
               <th onClick={this.onClickSort("email")}>Email</th>
-              <th onClick={this.onClickSort("account/residenceCountry")}>
+              <th onClick={this.onClickSort("account.residenceCountry")}>
                 Residence Country
               </th>
-              <th onClick={this.onClickSort("account/residenceCity")}>
+              <th onClick={this.onClickSort("account.residenceCity")}>
                 Residence City
               </th>
               <th onClick={this.onClickSort("lastActive")}>Date Last Active</th>
             </tr>
-            <tr>
-              <th />
-              <th>
+            <tr className="search-filter">
+              <td />
+              <td>
                 <input
                   type="text"
                   name="firstName"
                   onChange={this.onChangeTableFilter}
                 />
-              </th>
-              <th>
+              </td>
+              <td>
                 <input
                   type="text"
                   name="surname"
                   onChange={this.onChangeTableFilter}
                 />
-              </th>
-              <th>
+              </td>
+              <td>
                 <input
                   type="text"
                   name="email"
                   onChange={this.onChangeTableFilter}
                 />
-              </th>
-              <th>
+              </td>
+              <td>
                 <input
                   type="text"
                   name="account/residenceCountry"
                   onChange={this.onChangeTableFilter}
                 />
-              </th>
-              <th>
+              </td>
+              <td>
                 <input
                   type="text"
                   name="account/residenceCity"
                   onChange={this.onChangeTableFilter}
                 />
-              </th>
-              <th>
+              </td>
+              <td className="date-filter">
                 <DatePicker
                   selected={this.state.startDate}
                   onChange={this.handleChangeStateDate}
@@ -446,7 +416,7 @@ export default class Users extends React.Component<Props, State> {
                   selected={this.state.endDate}
                   onChange={this.handleChangeEndDate}
                 />
-              </th>
+              </td>
             </tr>
           </thead>
           <tbody>
@@ -464,13 +434,15 @@ export default class Users extends React.Component<Props, State> {
               ))}
           </tbody>
         </table>
-        <Pagination
-          activePage={page}
-          itemsCountPerPage={pageSize}
-          totalItemsCount={totalRecords}
-          pageRangeDisplayed={5}
-          onChange={this.handlePageChange}
-        />
+        {totalRecords > 0 && (
+          <Pagination
+            activePage={page}
+            itemsCountPerPage={pageSize}
+            totalItemsCount={totalRecords}
+            pageRangeDisplayed={5}
+            onChange={this.handlePageChange}
+          />
+        )}
       </div>
     );
   }
