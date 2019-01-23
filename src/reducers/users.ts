@@ -14,12 +14,13 @@ export const initialState: State = {
   pagination: {
     page: 1,
     pageSize: 10,
-    sortColumn: "",
-    sortOrder: "",
+    sortColumn: "firstName",
+    sortOrder: "asc",
+    search: [],
     searchColumn: "",
     searchValue: "",
-    startDate: "",
-    endDate: "",
+    startDate: 0,
+    endDate: 0,
   }
 };
 

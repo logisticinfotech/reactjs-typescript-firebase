@@ -33,11 +33,17 @@ export default class Users extends React.Component<Props, State> {
     this.handleChangeStateDate = this.handleChangeStateDate.bind(this);
     this.handlePageChange = this.handlePageChange.bind(this);
     firebase.initializeApp({
-      apiKey: "AIzaSyDIRctMKQk2ERxZkWTrY7AwN2-HhbY-C1E",
-      authDomain: "airvat-3f130.firebaseapp.com",
-      databaseURL: "https://airvat-3f130.firebaseio.com",
-      projectId: "airvat-3f130"
+      apiKey: "AIzaSyAq4AjIYruaLvZErbtXgRN-33C1lrBuQBA",
+      authDomain: "firestoredemo-38e37.firebaseapp.com",
+      databaseURL: "https://firestoredemo-38e37.firebaseio.com",
+      projectId: "firestoredemo-38e37"
     });
+    // firebase.initializeApp({
+    //   apiKey: "AIzaSyDIRctMKQk2ERxZkWTrY7AwN2-HhbY-C1E",
+    //   authDomain: "airvat-3f130.firebaseapp.com",
+    //   databaseURL: "https://airvat-3f130.firebaseio.com",
+    //   projectId: "airvat-3f130"
+    // });
     db = firebase.firestore();
   }
 
@@ -49,14 +55,7 @@ export default class Users extends React.Component<Props, State> {
     });
 
     await this.getTotalRecords();
-
-    const { pageSize } = this.props.pagination;
-    db.collection("users")
-      .limit(pageSize)
-      .get()
-      .then((users: any) => {
-        this.setUserResponse(users);
-      });
+    await this.filterAndSortAndPaginateUser(this.props.pagination);
   }
 
   setUserResponse = (users: any) => {
@@ -64,6 +63,7 @@ export default class Users extends React.Component<Props, State> {
     users.forEach((doc: any) => {
       const user = doc.data();
       user.id = doc.id;
+      console.log("user", user);
       userList.push(user);
     });
     this.props.listUser(userList);
@@ -71,107 +71,100 @@ export default class Users extends React.Component<Props, State> {
 
   // Fetch total number of users from firebase
   getTotalRecords = () => {
-    const { searchColumn, searchValue } = this.props.pagination;
+    const { pagination } = this.props;
+    const search: any = pagination.search;
+    const { sortColumn, sortOrder, startDate, endDate } = pagination;
+    let user = db.collection("users");
 
-    if (searchColumn) {
-      if (searchColumn === "lastActive") {
-        let startDate: any = this.props.pagination.startDate;
-        let endDate: any = this.props.pagination.endDate;
-
-        if (startDate && endDate) {
-          db.collection("users")
-            .where(searchColumn, ">=", startDate)
-            .where(searchColumn, "<=", endDate)
-            .get()
-            .then((users: any) => {
-              this.setState({
-                totalRecords: users.size
-              });
-            });
-        }
-      } else {
-        db.collection("users")
-          .where(searchColumn, ">=", searchValue)
-          .get()
-          .then((users: any) => {
-            this.setState({
-              totalRecords: users.size
-            });
-          });
-      }
-    } else {
-      db.collection("users")
-        .get()
-        .then((users: any) => {
-          this.setState({
-            totalRecords: users.size
-          });
-        });
+    if (startDate > 0 && endDate > 0) {
+      user = user
+        .where("lastActive", ">=", startDate)
+        .where("lastActive", "<=", endDate)
+        .orderBy("lastActive");
     }
+    if (sortColumn) {
+      user = user.orderBy(sortColumn, sortOrder);
+    }
+    if (search.length > 0) {
+      const startAt: any = [];
+      search.forEach((searchObj: any) => {
+        if (sortColumn !== searchObj.column) {
+          user = user.orderBy(searchObj.column);
+        }
+        startAt.push(searchObj.value);
+      });
+      user = user.startAt(startAt.join(","));
+    }
+    user.get().then((users: any) => {
+      this.setState({
+        totalRecords: users.size
+      });
+    });
   };
 
   // Search for each coloumn filters
   onChangeTableFilter = async (event: any) => {
     const column = event.target.name;
-    let search = event.target.value;
+    let searchString = event.target.value;
     if (column === "firstName" || column === "surname") {
-      search = search.toUpperCase();
+      searchString = searchString.toUpperCase();
     } else if (column === "email") {
-      search = search.toLowerCase();
+      searchString = searchString.toLowerCase();
     } else if (
-      column === "account/residenceCountry" ||
-      column === "account/residenceCity"
+      column === "account.residenceCountry" ||
+      column === "account.residenceCity"
     ) {
-      search = _.startCase(search);
+      searchString = _.startCase(searchString);
     }
-
-    const pagination = this.props.pagination;
-    pagination.page = 1;
-    pagination.startDate = "";
-    pagination.endDate = "";
-    if (search) {
-      pagination.searchColumn = column;
-      pagination.searchValue = search;
-      this.props.setPagination(pagination);
-
-      await db
-        .collection("users")
-        .where(column, ">=", search)
-        .where(column, "<=", search + "\uf8ff")
-        .limit(10)
-        .get()
-        .then((users: any) => {
-          this.setUserResponse(users);
-        });
+    const { pagination } = this.props;
+    const search: any = pagination.search;
+    const index = search.findIndex(
+      (searchObj: any) => searchObj.column === column
+    );
+    if (searchString) {
+      if (index !== -1) {
+        search[index].value = searchString;
+      } else {
+        const searchObj: any = {};
+        searchObj.column = column;
+        searchObj.value = searchString;
+        search.push(searchObj);
+      }
     } else {
-      pagination.searchColumn = "";
-      pagination.searchValue = "";
-      this.props.setPagination(pagination);
-
-      await db
-        .collection("users")
-        .limit(10)
-        .get()
-        .then((users: any) => {
-          this.setUserResponse(users);
-        });
+      search.splice(index, 1);
     }
-    this.getTotalRecords();
+    pagination.page = 1;
+    pagination.search = search;
+    await this.props.setPagination(pagination);
+    await this.filterAndSortAndPaginateUser(pagination);
+    await this.getTotalRecords();
   };
 
+  // Search for date start filters
   handleChangeStateDate = async (date: any) => {
     this.setState({
       startDate: date
     });
+    if (!date) {
+      const pagination = this.props.pagination;
+      pagination.startDate = 0;
+      await this.props.setPagination(pagination);
+    }
     setTimeout(() => {
       this.filterDate();
     }, 1);
   };
 
+  // Search for date end filters
   handleChangeEndDate = async (date: any) => {
     this.setState({
       endDate: date
     });
+    if (!date) {
+      const pagination = this.props.pagination;
+      pagination.endDate = 0;
+      await this.props.setPagination(pagination);
+    }
     setTimeout(() => {
       this.filterDate();
     }, 1);
@@ -180,155 +173,20 @@ export default class Users extends React.Component<Props, State> {
   filterDate = async () => {
     let startDate: any = this.state.startDate;
     let endDate: any = this.state.endDate;
-
-    if (startDate && endDate) {
-      const column = "lastActive";
-      startDate = Number(moment(startDate).format("X")) * 1000;
-      endDate = Number(moment(endDate).format("X")) * 1000;
-
-      const pagination = this.props.pagination;
-      pagination.searchColumn = column;
-      pagination.startDate = startDate;
-      pagination.endDate = endDate;
-      pagination.searchValue = "";
-      pagination.page = 1;
-      this.props.setPagination(pagination);
-
-      await db
-        .collection("users")
-        .where(column, ">=", startDate)
-        .where(column, "<=", endDate)
-        .limit(10)
-        .get()
-        .then((users: any) => {
-          this.setUserResponse(users);
-        });
-
-      this.getTotalRecords();
-    } else {
-      const pagination = this.props.pagination;
-      pagination.searchColumn = "";
-      pagination.searchValue = "";
-      pagination.page = 1;
-      this.props.setPagination(pagination);
-
-      await db
-        .collection("users")
-        .limit(10)
-        .get()
-        .then((users: any) => {
-          this.setUserResponse(users);
-        });
-      this.getTotalRecords();
-    }
-  };
-
-  // Handle page click on particular page
-  handlePageChange = async (pageNumber: number) => {
     const pagination = this.props.pagination;
-    pagination.page = pageNumber;
-    this.props.setPagination(pagination);
-
-    const {
-      searchColumn,
-      searchValue,
-      startDate,
-      endDate
-    } = this.props.pagination;
-    const { pageSize } = this.props.pagination;
-    const limitTo = (pageNumber - 1) * pageSize;
-
-    if (searchColumn) {
-      if (searchColumn === "lastActive") {
-        if (startDate && endDate) {
-          if (limitTo > 0) {
-            db.collection("users")
-              .where(searchColumn, ">=", startDate)
-              .where(searchColumn, "<=", endDate)
-              .limit(limitTo)
-              .get()
-              .then((documentSnapshots: any) => {
-                var lastVisible =
-                  documentSnapshots.docs[documentSnapshots.docs.length - 1];
-                db.collection("users")
-                  .where(searchColumn, ">=", startDate)
-                  .where(searchColumn, "<=", endDate)
-                  .startAfter(lastVisible)
-                  .limit(pageSize)
-                  .get()
-                  .then((users: any) => {
-                    this.setUserResponse(users);
-                  });
-              });
-          } else {
-            db.collection("users")
-              .where(searchColumn, ">=", startDate)
-              .where(searchColumn, "<=", endDate)
-              .limit(pageSize)
-              .get()
-              .then((users: any) => {
-                this.setUserResponse(users);
-              });
-          }
-        }
-      } else {
-        if (limitTo > 0) {
-          db.collection("users")
-            .where(searchColumn, ">=", searchValue)
-            .where(searchColumn, "<=", searchValue + "\uf8ff")
-            .limit(limitTo)
-            .get()
-            .then((documentSnapshots: any) => {
-              var lastVisible =
-                documentSnapshots.docs[documentSnapshots.docs.length - 1];
-              db.collection("users")
-                .where(searchColumn, ">=", searchValue)
-                .where(searchColumn, "<=", searchValue + "\uf8ff")
-                .startAfter(lastVisible)
-                .limit(pageSize)
-                .get()
-                .then((users: any) => {
-                  this.setUserResponse(users);
-                });
-            });
-        } else {
-          db.collection("users")
-            .where(searchColumn, ">=", searchValue)
-            .where(searchColumn, "<=", searchValue + "\uf8ff")
-            .limit(pageSize)
-            .get()
-            .then((users: any) => {
-              this.setUserResponse(users);
-            });
-        }
-      }
+    if (startDate && endDate) {
+      pagination.startDate = Number(moment(startDate).format("X")) * 1000;
+      pagination.endDate = Number(moment(endDate).format("X")) * 1000;
+      pagination.page = 1;
     } else {
-      if (limitTo > 0) {
-        db.collection("users")
-          .limit(limitTo)
-          .get()
-          .then((documentSnapshots: any) => {
-            var lastVisible =
-              documentSnapshots.docs[documentSnapshots.docs.length - 1];
-            db.collection("users")
-              .startAfter(lastVisible)
-              .limit(pageSize)
-              .get()
-              .then((users: any) => {
-                this.setUserResponse(users);
-              });
-          });
-      } else {
-        db.collection("users")
-          .limit(pageSize)
-          .get()
-          .then((users: any) => {
-            this.setUserResponse(users);
-          });
-      }
+      pagination.page = 1;
     }
+    await this.props.setPagination(pagination);
+    await this.filterAndSortAndPaginateUser(pagination);
+    await this.getTotalRecords();
   };
 
+  // sorting function
   onClickSort = (column: string) => () => {
     const pagination = this.props.pagination;
     const sortOrder =
@@ -340,14 +198,76 @@ export default class Users extends React.Component<Props, State> {
     pagination.sortColumn = column;
     pagination.sortOrder = sortOrder;
     this.props.setPagination(pagination);
+    this.filterAndSortAndPaginateUser(pagination);
+  };
 
-    db.collection("users")
-      .orderBy(column, sortOrder)
-      .limit(pagination.pageSize)
-      .get()
-      .then((users: any) => {
-        this.setUserResponse(users);
+  // Handle page click on particular page
+  handlePageChange = async (pageNumber: number) => {
+    const pagination = this.props.pagination;
+    pagination.page = pageNumber;
+    await this.props.setPagination(pagination);
+    await this.filterAndSortAndPaginateUser(pagination);
+  };
+
+  filterAndSortAndPaginateUser = (pagination: UserPagination) => {
+    const { pageSize, page } = pagination;
+    const limitTo = (page - 1) * pageSize;
+    let user = db.collection("users");
+
+    if (limitTo > 0) {
+      user = this.createUserQuery(user, pagination);
+      user
+        .limit(limitTo)
+        .get()
+        .then((documentSnapshots: any) => {
+          var lastVisible =
+            documentSnapshots.docs[documentSnapshots.docs.length - 1];
+          let subUser = db.collection("users");
+          subUser = this.createUserQuery(subUser, pagination);
+          subUser
+            .startAfter(lastVisible)
+            .limit(pageSize)
+            .get()
+            .then((users: any) => {
+              this.setUserResponse(users);
+            });
+        });
+    } else {
+      user = this.createUserQuery(user, pagination);
+      user
+        .limit(pageSize)
+        .get()
+        .then((users: any) => {
+          this.setUserResponse(users);
+        });
+    }
+  };
+
+  createUserQuery = (user: any, pagination: UserPagination) => {
+    const search: any = pagination.search;
+    const { sortColumn, sortOrder, startDate, endDate } = pagination;
+    if (startDate > 0 && endDate > 0) {
+      user = user
+        .where("lastActive", ">=", startDate)
+        .where("lastActive", "<=", endDate)
+        .orderBy("lastActive");
+    }
+    if (sortColumn) {
+      user = user.orderBy(sortColumn, sortOrder);
+    }
+    if (search.length > 0) {
+      const startAt: any = [];
+      search.forEach((searchObj: any) => {
+        if (sortColumn !== searchObj.column) {
+          user = user.orderBy(searchObj.column);
+        }
+        startAt.push(searchObj.value);
       });
+      user = user.startAt(startAt.join(","))
+      .endAt(search[0].value + "\uf8ff");
+    }
+
+    return user;
   };
 
   render() {
@@ -400,14 +320,14 @@ export default class Users extends React.Component<Props, State> {
               <td>
                 <input
                   type="text"
-                  name="account/residenceCountry"
+                  name="account.residenceCountry"
                   onChange={this.onChangeTableFilter}
                 />
               </td>
               <td>
                 <input
                   type="text"
-                  name="account/residenceCity"
+                  name="account.residenceCity"
                   onChange={this.onChangeTableFilter}
                 />
               </td>
