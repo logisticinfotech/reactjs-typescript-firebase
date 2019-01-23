@@ -251,6 +251,8 @@ export default class Users extends React.Component<Props, State> {
                 var lastVisible =
                   documentSnapshots.docs[documentSnapshots.docs.length - 1];
                 db.collection("users")
+                  .where(searchColumn, ">=", startDate)
+                  .where(searchColumn, "<=", endDate)
                   .startAfter(lastVisible)
                   .limit(pageSize)
                   .get()
@@ -280,6 +282,8 @@ export default class Users extends React.Component<Props, State> {
               var lastVisible =
                 documentSnapshots.docs[documentSnapshots.docs.length - 1];
               db.collection("users")
+                .where(searchColumn, ">=", searchValue)
+                .where(searchColumn, "<=", searchValue + "\uf8ff")
                 .startAfter(lastVisible)
                 .limit(pageSize)
                 .get()
