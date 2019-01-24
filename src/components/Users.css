@@ -6,6 +6,15 @@
   width: 100%;
 }
 
+.display th img {
+  height: 16px;
+  float: right;
+}
+
+.display th {
+  cursor: pointer;
+}
+
 .text-boxs {
   display: block;
 }

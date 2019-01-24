@@ -9,6 +9,9 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Pagination from "react-js-pagination";
 import "./Users.css";
+import SortingAsc from "./sorting_asc.svg";
+import SortingDesc from "./sorting_desc.svg";
+import Sorting from "./sorting.svg";
 
 interface Props {
   users: User[];
@@ -358,6 +361,21 @@ export default class Users extends React.Component<Props, State> {
     return user;
   };
 
+  renderSortingIcon = (column: string) => {
+    const {
+      pagination: { sortColumn, sortOrder }
+    } = this.props;
+    if (sortColumn === column) {
+      if (sortOrder === "asc") {
+        return <img src={SortingAsc} />;
+      } else {
+        return <img src={SortingDesc} />;
+      }
+    } else {
+      return <img src={Sorting} />;
+    }
+  };
+
   render() {
     const {
       users,
@@ -371,16 +389,30 @@ export default class Users extends React.Component<Props, State> {
           <thead>
             <tr>
               <th>User ID</th>
-              <th onClick={this.onClickSort("firstName")}>First Name</th>
-              <th onClick={this.onClickSort("surname")}>Second Name</th>
-              <th onClick={this.onClickSort("email")}>Email</th>
+              <th onClick={this.onClickSort("firstName")}>
+                First Name
+                {this.renderSortingIcon("firstName")}
+              </th>
+              <th onClick={this.onClickSort("surname")}>
+                Second Name
+                {this.renderSortingIcon("surname")}
+              </th>
+              <th onClick={this.onClickSort("email")}>
+                Email
+                {this.renderSortingIcon("email")}
+              </th>
               <th onClick={this.onClickSort("account.residenceCountry")}>
                 Residence Country
+                {this.renderSortingIcon("account.residenceCountry")}
               </th>
               <th onClick={this.onClickSort("account.residenceCity")}>
                 Residence City
+                {this.renderSortingIcon("account.residenceCity")}
               </th>
-              <th onClick={this.onClickSort("lastActive")}>Date Last Active</th>
+              <th onClick={this.onClickSort("lastActive")}>
+                Date Last Active
+                {this.renderSortingIcon("lastActive")}
+              </th>
             </tr>
             <tr className="search-filter">
               <td />
