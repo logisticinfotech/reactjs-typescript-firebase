@@ -23,6 +23,8 @@ interface State {
   startDate: any;
   endDate: any;
   totalRecords: number;
+  cities: any;
+  countries: any;
 }
 
 let db: any;
@@ -57,9 +59,28 @@ export default class Users extends React.Component<Props, State> {
     this.setState({
       startDate: null,
       endDate: null,
-      totalRecords: 0
+      totalRecords: 0,
+      cities: [],
+      countries: []
     });
 
+    const cities: any = [];
+    const countries: any = [];
+    db.collection("users")
+      .get()
+      .then(async (users: any) => {
+        await users.forEach((doc: any) => {
+          const userObj = doc.data();
+          if (userObj.account) {
+            cities.push(userObj.account.residenceCity);
+            countries.push(userObj.account.residenceCountry);
+          }
+        });
+        this.setState({
+          cities: _.uniq(cities),
+          countries: _.uniq(countries)
+        });
+      });
     await this.getTotalRecords();
     await this.filterAndSortAndPaginateUser(this.props.pagination);
   }
@@ -69,7 +90,6 @@ export default class Users extends React.Component<Props, State> {
     users.forEach((doc: any) => {
       const user = doc.data();
       user.id = doc.id;
-      console.log("user", user);
       userList.push(user);
     });
     this.props.listUser(userList);
@@ -89,20 +109,20 @@ export default class Users extends React.Component<Props, State> {
 
   // Search for each coloumn filters
   onChangeTableFilter = async (event: any) => {
+    const { pagination } = this.props;
+    const search: any = pagination.search;
     const column = event.target.name;
     let searchString = event.target.value;
     if (column === "firstName" || column === "surname") {
       searchString = searchString.toUpperCase();
     } else if (column === "email") {
       searchString = searchString.toLowerCase();
-    } else if (
-      column === "account.residenceCountry" ||
-      column === "account.residenceCity"
-    ) {
-      searchString = _.startCase(searchString);
+    } else if (column === "account.residenceCountry") {
+      pagination.searchCountry = searchString;
+    } else if (column === "account.residenceCity") {
+      pagination.searchCity = searchString;
     }
-    const { pagination } = this.props;
-    const search: any = pagination.search;
+
     const index = search.findIndex(
       (searchObj: any) => searchObj.column === column
     );
@@ -121,8 +141,8 @@ export default class Users extends React.Component<Props, State> {
     pagination.page = 1;
     pagination.search = search;
     await this.props.setPagination(pagination);
-    await this.filterAndSortAndPaginateUser(pagination);
     await this.getTotalRecords();
+    await this.filterAndSortAndPaginateUser(pagination);
   };
 
   // Search for date start filters
@@ -142,12 +162,14 @@ export default class Users extends React.Component<Props, State> {
 
   // Search for date end filters
   handleChangeEndDate = async (date: any) => {
-    var endDate = new Date(date);
-    endDate.setHours(23);
-    endDate.setMinutes(59);
-    endDate.setSeconds(59);
+    if (date) {
+      date = new Date(date);
+      date.setHours(23);
+      date.setMinutes(59);
+      date.setSeconds(59);
+    }
     this.setState({
-      endDate
+      endDate: date
     });
     if (!date) {
       const pagination = this.props.pagination;
@@ -171,8 +193,8 @@ export default class Users extends React.Component<Props, State> {
       pagination.page = 1;
     }
     await this.props.setPagination(pagination);
-    await this.filterAndSortAndPaginateUser(pagination);
     await this.getTotalRecords();
+    await this.filterAndSortAndPaginateUser(pagination);
   };
 
   // sorting function
@@ -235,30 +257,49 @@ export default class Users extends React.Component<Props, State> {
   createUserQuery = (user: any, pagination: UserPagination) => {
     const search: any = pagination.search;
     const { sortColumn, sortOrder, startDate, endDate } = pagination;
-    if (startDate > 0 && endDate > 0) {
-      if (sortColumn === "lastActive") {
-        user = user
-          .where("lastActive", ">=", startDate)
-          .where("lastActive", "<=", endDate)
-          .orderBy("lastActive", sortOrder);
-      } else {
-        user = user
-          .where("lastActive", ">=", startDate)
-          .where("lastActive", "<=", endDate)
-          .orderBy("lastActive");
-      }
-    }
+
     if (search.length > 0) {
       const startAt: any = [];
-      search.forEach((searchObj: any) => {
-        if (searchObj.column === sortColumn) {
-          user = user.orderBy(searchObj.column, sortOrder);
+      if (startDate > 0 && endDate > 0) {
+        const index = search.findIndex(
+          (searchObj: any) => searchObj.column === "lastActive"
+        );
+        if (index !== -1) {
+          search[index].value = startDate;
         } else {
-          user = user.orderBy(searchObj.column);
+          search.push({
+            column: "lastActive",
+            value: startDate
+          });
         }
-        startAt.push(searchObj.value);
+      }
+      search.forEach((searchObj: any, index: number) => {
+        if (searchObj.column === sortColumn) {
+          if (
+            searchObj.column === "account.residenceCity" ||
+            searchObj.column === "account.residenceCountry"
+          ) {
+            user = user.where(searchObj.column, "==", searchObj.value);
+          } else {
+            user = user.orderBy(searchObj.column, sortOrder);
+            startAt.push(searchObj.value);
+          }
+        } else {
+          if (
+            searchObj.column === "account.residenceCity" ||
+            searchObj.column === "account.residenceCountry"
+          ) {
+            user = user.where(searchObj.column, "==", searchObj.value);
+          } else {
+            user = user.orderBy(searchObj.column);
+            startAt.push(searchObj.value);
+          }
+        }
       });
       switch (startAt.length) {
+        case 1:
+          user = user.startAt(startAt[0]);
+          break;
         case 2:
           user = user.startAt(startAt[0], startAt[1]);
           break;
@@ -288,9 +329,24 @@ export default class Users extends React.Component<Props, State> {
           );
           break;
         default:
-          user = user.startAt(startAt[0]);
       }
-      user = user.endAt(startAt[0] + "\uf8ff");
+      if (startAt.length > 0) {
+        user = user.endAt(startAt[0] + "\uf8ff");
+      }
+    } else {
+      if (startDate > 0 && endDate > 0) {
+        if (sortColumn === "lastActive") {
+          user = user
+            .where("lastActive", ">=", startDate)
+            .where("lastActive", "<=", endDate)
+            .orderBy("lastActive", sortOrder);
+        } else {
+          user = user
+            .where("lastActive", ">=", startDate)
+            .where("lastActive", "<=", endDate)
+            .orderBy("lastActive");
+        }
+      }
     }
 
     return user;
@@ -299,9 +355,9 @@ export default class Users extends React.Component<Props, State> {
   render() {
     const {
       users,
-      pagination: { page, pageSize }
+      pagination: { page, pageSize, searchCity, searchCountry }
     } = this.props;
-    const { totalRecords } = this.state;
+    const { totalRecords, cities, countries } = this.state;
 
     return (
       <div className="App">
@@ -344,18 +400,32 @@ export default class Users extends React.Component<Props, State> {
                 />
               </td>
               <td>
-                <input
-                  type="text"
+                <select
                   name="account.residenceCountry"
+                  value={searchCountry}
                   onChange={this.onChangeTableFilter}
-                />
+                >
+                  <option value="">Select Country</option>
+                  {countries.map((country: string, index: number) => (
+                    <option key={index} value={country}>
+                      {country}
+                    </option>
+                  ))}
+                </select>
               </td>
               <td>
-                <input
-                  type="text"
+                <select
                   name="account.residenceCity"
+                  value={searchCity}
                   onChange={this.onChangeTableFilter}
-                />
+                >
+                  <option value="">Select City</option>
+                  {cities.map((city: string, index: number) => (
+                    <option key={index} value={city}>
+                      {city}
+                    </option>
+                  ))}
+                </select>
               </td>
               <td className="date-filter">
                 <DatePicker

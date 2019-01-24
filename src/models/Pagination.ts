@@ -4,8 +4,8 @@ export default interface Pagination {
   sortColumn: string;
   sortOrder: string;
   search: Array<Object>;
-  searchColumn: string;
-  searchValue: string;
+  searchCountry: string;
+  searchCity: string;
   startDate: number;
   endDate: number;
 }

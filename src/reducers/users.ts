@@ -17,8 +17,8 @@ export const initialState: State = {
     sortColumn: "firstName",
     sortOrder: "asc",
     search: [],
-    searchColumn: "",
-    searchValue: "",
+    searchCountry: "",
+    searchCity: "",
     startDate: 0,
     endDate: 0
   }
