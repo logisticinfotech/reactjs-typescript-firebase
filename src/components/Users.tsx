@@ -32,18 +32,24 @@ export default class Users extends React.Component<Props, State> {
     this.handleChangeEndDate = this.handleChangeEndDate.bind(this);
     this.handleChangeStateDate = this.handleChangeStateDate.bind(this);
     this.handlePageChange = this.handlePageChange.bind(this);
-    firebase.initializeApp({
-      apiKey: "AIzaSyAq4AjIYruaLvZErbtXgRN-33C1lrBuQBA",
-      authDomain: "firestoredemo-38e37.firebaseapp.com",
-      databaseURL: "https://firestoredemo-38e37.firebaseio.com",
-      projectId: "firestoredemo-38e37"
-    });
+    // firebase.initializeApp({
+    //   apiKey: "AIzaSyAq4AjIYruaLvZErbtXgRN-33C1lrBuQBA",
+    //   authDomain: "firestoredemo-38e37.firebaseapp.com",
+    //   databaseURL: "https://firestoredemo-38e37.firebaseio.com",
+    //   projectId: "firestoredemo-38e37"
+    // });
     // firebase.initializeApp({
     //   apiKey: "AIzaSyDIRctMKQk2ERxZkWTrY7AwN2-HhbY-C1E",
     //   authDomain: "airvat-3f130.firebaseapp.com",
     //   databaseURL: "https://airvat-3f130.firebaseio.com",
     //   projectId: "airvat-3f130"
     // });
+    firebase.initializeApp({
+      apiKey: "AIzaSyB_Pv9ldpLI6hzmTdK0h-fAu_3j6Yha83w",
+      authDomain: "firestoredemo-38e37.firebaseapp.com",
+      databaseURL: "https://firestorecandidatelist.firebaseio.com",
+      projectId: "firestorecandidatelist"
+    });
     db = firebase.firestore();
   }
 
@@ -72,29 +78,8 @@ export default class Users extends React.Component<Props, State> {
   // Fetch total number of users from firebase
   getTotalRecords = () => {
     const { pagination } = this.props;
-    const search: any = pagination.search;
-    const { sortColumn, sortOrder, startDate, endDate } = pagination;
     let user = db.collection("users");
-
-    if (startDate > 0 && endDate > 0) {
-      user = user
-        .where("lastActive", ">=", startDate)
-        .where("lastActive", "<=", endDate)
-        .orderBy("lastActive");
-    }
-    if (sortColumn) {
-      user = user.orderBy(sortColumn, sortOrder);
-    }
-    if (search.length > 0) {
-      const startAt: any = [];
-      search.forEach((searchObj: any) => {
-        if (sortColumn !== searchObj.column) {
-          user = user.orderBy(searchObj.column);
-        }
-        startAt.push(searchObj.value);
-      });
-      user = user.startAt(startAt.join(","));
-    }
+    user = this.createUserQuery(user, pagination);
     user.get().then((users: any) => {
       this.setState({
         totalRecords: users.size
@@ -157,8 +142,12 @@ export default class Users extends React.Component<Props, State> {
 
   // Search for date end filters
   handleChangeEndDate = async (date: any) => {
+    var endDate = new Date(date);
+    endDate.setHours(23);
+    endDate.setMinutes(59);
+    endDate.setSeconds(59);
     this.setState({
-      endDate: date
+      endDate
     });
     if (!date) {
       const pagination = this.props.pagination;
@@ -247,24 +236,61 @@ export default class Users extends React.Component<Props, State> {
     const search: any = pagination.search;
     const { sortColumn, sortOrder, startDate, endDate } = pagination;
     if (startDate > 0 && endDate > 0) {
-      user = user
-        .where("lastActive", ">=", startDate)
-        .where("lastActive", "<=", endDate)
-        .orderBy("lastActive");
-    }
-    if (sortColumn) {
-      user = user.orderBy(sortColumn, sortOrder);
+      if (sortColumn === "lastActive") {
+        user = user
+          .where("lastActive", ">=", startDate)
+          .where("lastActive", "<=", endDate)
+          .orderBy("lastActive", sortOrder);
+      } else {
+        user = user
+          .where("lastActive", ">=", startDate)
+          .where("lastActive", "<=", endDate)
+          .orderBy("lastActive");
+      }
     }
     if (search.length > 0) {
       const startAt: any = [];
       search.forEach((searchObj: any) => {
-        if (sortColumn !== searchObj.column) {
+        if (searchObj.column === sortColumn) {
+          user = user.orderBy(searchObj.column, sortOrder);
+        } else {
           user = user.orderBy(searchObj.column);
         }
         startAt.push(searchObj.value);
       });
-      user = user.startAt(startAt.join(","))
-      .endAt(search[0].value + "\uf8ff");
+      switch (startAt.length) {
+        case 2:
+          user = user.startAt(startAt[0], startAt[1]);
+          break;
+        case 3:
+          user = user.startAt(startAt[0], startAt[1], startAt[2]);
+          break;
+        case 4:
+          user = user.startAt(startAt[0], startAt[1], startAt[2], startAt[3]);
+          break;
+        case 5:
+          user = user.startAt(
+            startAt[0],
+            startAt[1],
+            startAt[2],
+            startAt[3],
+            startAt[4]
+          );
+          break;
+        case 6:
+          user = user.startAt(
+            startAt[0],
+            startAt[1],
+            startAt[2],
+            startAt[3],
+            startAt[4],
+            startAt[5]
+          );
+          break;
+        default:
+          user = user.startAt(startAt[0]);
+      }
+      user = user.endAt(startAt[0] + "\uf8ff");
     }
 
     return user;

@@ -20,7 +20,7 @@ export const initialState: State = {
     searchColumn: "",
     searchValue: "",
     startDate: 0,
-    endDate: 0,
+    endDate: 0
   }
 };
 
