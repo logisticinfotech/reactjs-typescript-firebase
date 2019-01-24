@@ -20,6 +20,9 @@ interface Props {
   setPagination: (pagination: UserPagination) => void;
 }
 
+/*
+* Initial state value
+*/
 interface State {
   users: User[];
   pagination: UserPagination;
@@ -31,12 +34,18 @@ interface State {
 }
 
 let db: any;
+
 export default class Users extends React.Component<Props, State> {
   constructor(props: Props, state: State) {
     super(props);
     this.handleChangeEndDate = this.handleChangeEndDate.bind(this);
     this.handleChangeStateDate = this.handleChangeStateDate.bind(this);
     this.handlePageChange = this.handlePageChange.bind(this);
+
+    /*
+    * Firebase keys for testing
+    */
+
     // firebase.initializeApp({
     //   apiKey: "AIzaSyAq4AjIYruaLvZErbtXgRN-33C1lrBuQBA",
     //   authDomain: "firestoredemo-38e37.firebaseapp.com",
@@ -67,6 +76,9 @@ export default class Users extends React.Component<Props, State> {
       countries: []
     });
 
+    /*
+    * Pre populate cities and country for dropdown list
+    */
     let cities: any = [];
     let countries: any = [];
     db.collection("users")
@@ -91,7 +103,9 @@ export default class Users extends React.Component<Props, State> {
     await this.getTotalRecords();
     await this.filterAndSortAndPaginateUser(this.props.pagination);
   }
-
+  /*
+  * Common function to parse user list
+  */
   setUserResponse = (users: any) => {
     const userList: any = [];
     users.forEach((doc: any) => {
@@ -102,7 +116,9 @@ export default class Users extends React.Component<Props, State> {
     this.props.listUser(userList);
   };
 
-  // Fetch total number of users from firebase
+  /*
+  * Fetch total number of users from firebase
+  */
   getTotalRecords = () => {
     const { pagination } = this.props;
     let user = db.collection("users");
@@ -114,7 +130,9 @@ export default class Users extends React.Component<Props, State> {
     });
   };
 
-  // Search for each coloumn filters
+  /*
+  * Search for each coloumn filters
+  */
   onChangeTableFilter = async (event: any) => {
     const { pagination } = this.props;
     const search: any = pagination.search;
@@ -152,7 +170,9 @@ export default class Users extends React.Component<Props, State> {
     await this.filterAndSortAndPaginateUser(pagination);
   };
 
-  // Search for date start filters
+  /*
+  * Search for date start filters
+  */
   handleChangeStateDate = async (date: any) => {
     this.setState({
       startDate: date
@@ -167,7 +187,9 @@ export default class Users extends React.Component<Props, State> {
     }, 1);
   };
 
-  // Search for date end filters
+  /*
+  * Search for date end filters
+  */
   handleChangeEndDate = async (date: any) => {
     if (date) {
       date = new Date(date);
@@ -188,6 +210,9 @@ export default class Users extends React.Component<Props, State> {
     }, 1);
   };
 
+  /*
+  * Filter option using start and end date
+  */
   filterDate = async () => {
     let startDate: any = this.state.startDate;
     let endDate: any = this.state.endDate;
@@ -204,7 +229,9 @@ export default class Users extends React.Component<Props, State> {
     await this.filterAndSortAndPaginateUser(pagination);
   };
 
-  // sorting function
+  /*
+  * sorting function
+  */
   onClickSort = (column: string) => () => {
     const pagination = this.props.pagination;
     const sortOrder =
@@ -219,13 +246,19 @@ export default class Users extends React.Component<Props, State> {
     this.filterAndSortAndPaginateUser(pagination);
   };
 
-  // Handle page click on particular page
+  /*
+  * Handle page click on particular page
+  */
   handlePageChange = async (pageNumber: number) => {
     const pagination = this.props.pagination;
     pagination.page = pageNumber;
     await this.props.setPagination(pagination);
     await this.filterAndSortAndPaginateUser(pagination);
   };
+
+  /*
+  * Current filter applied to selected page
+  */
 
   filterAndSortAndPaginateUser = (pagination: UserPagination) => {
     const { pageSize, page } = pagination;
@@ -238,7 +271,7 @@ export default class Users extends React.Component<Props, State> {
         .limit(limitTo)
         .get()
         .then((documentSnapshots: any) => {
-          var lastVisible =
+          let lastVisible =
             documentSnapshots.docs[documentSnapshots.docs.length - 1];
           let subUser = db.collection("users");
           subUser = this.createUserQuery(subUser, pagination);
@@ -260,6 +293,10 @@ export default class Users extends React.Component<Props, State> {
         });
     }
   };
+
+  /*
+  * Filters being aplied for query according to selections in multiple columns
+  */
 
   createUserQuery = (user: any, pagination: UserPagination) => {
     const search: any = pagination.search;
