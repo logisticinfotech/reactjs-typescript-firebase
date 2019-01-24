@@ -64,8 +64,8 @@ export default class Users extends React.Component<Props, State> {
       countries: []
     });
 
-    const cities: any = [];
-    const countries: any = [];
+    let cities: any = [];
+    let countries: any = [];
     db.collection("users")
       .get()
       .then(async (users: any) => {
@@ -76,9 +76,13 @@ export default class Users extends React.Component<Props, State> {
             countries.push(userObj.account.residenceCountry);
           }
         });
+        cities = _.uniq(cities);
+        cities = _.sortBy(cities);
+        countries = _.uniq(countries);
+        countries = _.sortBy(countries);
         this.setState({
-          cities: _.uniq(cities),
-          countries: _.uniq(countries)
+          cities,
+          countries
         });
       });
     await this.getTotalRecords();
