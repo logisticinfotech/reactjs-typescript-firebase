@@ -2,7 +2,9 @@ This project is Demo task for candidate listing from Firestore with pagination, 
 
 Let's clone code from git
 
-cd project_foldername
+git clone git@github.com:logisticinfotech/reactjs-typescript-firebase.git
+
+cd reactjs-typescript-firebase
 
 ## Available Scripts
 
