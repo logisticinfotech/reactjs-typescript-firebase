@@ -40,18 +40,18 @@ export default class Users extends React.Component<Props, State> {
     //   databaseURL: "https://firestoredemo-38e37.firebaseio.com",
     //   projectId: "firestoredemo-38e37"
     // });
-    // firebase.initializeApp({
-    //   apiKey: "AIzaSyDIRctMKQk2ERxZkWTrY7AwN2-HhbY-C1E",
-    //   authDomain: "airvat-3f130.firebaseapp.com",
-    //   databaseURL: "https://airvat-3f130.firebaseio.com",
-    //   projectId: "airvat-3f130"
-    // });
     firebase.initializeApp({
-      apiKey: "AIzaSyB_Pv9ldpLI6hzmTdK0h-fAu_3j6Yha83w",
-      authDomain: "firestoredemo-38e37.firebaseapp.com",
-      databaseURL: "https://firestorecandidatelist.firebaseio.com",
-      projectId: "firestorecandidatelist"
+      apiKey: "AIzaSyDIRctMKQk2ERxZkWTrY7AwN2-HhbY-C1E",
+      authDomain: "airvat-3f130.firebaseapp.com",
+      databaseURL: "https://airvat-3f130.firebaseio.com",
+      projectId: "airvat-3f130"
     });
+    // firebase.initializeApp({
+    //   apiKey: "AIzaSyB_Pv9ldpLI6hzmTdK0h-fAu_3j6Yha83w",
+    //   authDomain: "firestoredemo-38e37.firebaseapp.com",
+    //   databaseURL: "https://firestorecandidatelist.firebaseio.com",
+    //   projectId: "firestorecandidatelist"
+    // });
     db = firebase.firestore();
   }
 
@@ -346,6 +346,8 @@ export default class Users extends React.Component<Props, State> {
             .where("lastActive", "<=", endDate)
             .orderBy("lastActive");
         }
+      } else if (sortColumn) {
+        user = user.orderBy(sortColumn, sortOrder);
       }
     }
 
